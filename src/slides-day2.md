@@ -1,55 +1,49 @@
-title: Rakudo and NQP Internals
-subtitle: The guts tormented implementers made
-author: Jonathan Worthington
+标题: Rakudo and NQP Internals
+副标题: The guts tormented implementers made
+作者: Jonathan Worthington
 
 ## Course overview - Day 2
 
-Welcome back. Today, we will cover the following topics:
+欢迎回来。 今天我们讲的内容会覆盖以下主题：
 
 * 6model
-* Bounded Serialization and Module Loading
-* The regex and grammar engine
-* The JVM backend
-* The MoarVM backend
+* 有界序列化以及模块加载 （Bounded Serialization and Module Loading）
+* 正则表达式和语法引擎 （The regex and grammar engine）
+* JVM 后端 （The JVM backend）
+* MoarVM 后端 （The MoarVM backend）
 
 # 6model
 
-*Ingredients for cooking up object systems*
+*构建对象系统所需的材料*
 
-## What is 6model?
+## 什么是 6model?
 
-6model provides a set of **primitives for building type and object systems**.
+6model 提供了一系列 **构建类型和对象系统的基本组件**。
 
-Rakudo's classes, roles, enumerations and subset types are all assembled out
-of these primitives. The same is true of NQP, although NQP's object system is
-simpler, just providing classes and roles.
+Rakudo 的 classes， roles， enumerations 以及 subset 类型都是由这些基本组件组装而成的，
+同样对于 NQP 也是，尽管 NQP 的对象系统比较简单，仅仅提供了 classed 和 roles。
 
-These primitives have been implemented on Parrot and the JVM. MoarVM provides
-them also, but it goes a step further, making 6model *the* object system for
-the VM.
+这些基本组件已经在 Parrot 以及 JVM 上实现了， MoarVM 也提供了他们, 但它更进一步，虚拟机
+的对象系统也是 6model。
 
-The primitives are more primitive than you may first imagine. For example,
-6model has **no built-in concept of inheritance or role composition**. These
-are built at a higher level.
+这些基本组件比我一开始想象的更加基础。比如，6model 没有**内建继承以及组合的概念**，这些
+东西构建在更高的层次。
 
-## Object = behavior + state
+## 对象 = 行为 + 状态
 
-Whatever language you look at, you'll find that objects always have:
+无论任何语法，你将会发现对象总是有：
 
-* A mechanism for making object instances, which can have **state**
-* A mechanism for taking an object and a name, locating a **behavior** with
-  that name, and (provided it exists) invoking it
+* 一个构建对象实例的机制, 对象可以有 **状态**
+* 一个捕获对象和名字的机制，使用名字定位 **行为**，然后（如果存在）调用它
 
-The state may be shaped by classes or freeform. The behavior may be directly
-attached to the object, attached at a per-class level, or located through a
-multiple dispatch mechanism.
+状态可能被类包装或者是自由形式，行为可能直接隶属于对象，隶属于类层次，或者由多重分派机制
+定位。
 
-But there will always be **state** and **behavior**.
+但总是会有 **状态** 以及 **行为**。
 
-## Types
+## 类型
 
-Most languages also have some notion of **type**. Typically, types fall into
-relationships with each other. For example, given:
+大部分语法也会有一些 **类型** 的概念。一般来说，类型彼此关联， 比如， 有：
 
     class Event {
         has $.name;
@@ -61,51 +55,43 @@ relationships with each other. For example, given:
         has @.hackers;
     }
 
-We can say that `Hackathon` is a subtype of `Event`.
+我们可以说 `Hackathon` 是 `Event` 的子类型。
 
-## Package kinds
+## 包类型
 
-Not only do we have different types, we have **different kinds of type**. In
-Perl 6, these correspond to different **package and type declarators**.
+我们不只有不同的类型，我们还有**不同类型的类型**（Not only do we have different types,
+we have **different kinds of type**）。在Perl 6中, 它们对应于不同的 **包以及类型声明符**。
 
     package     module      knowhow     class
     grammar     role        enum        subset
 
-They have rather different properties, and behave in rather different ways.
-For example, type-checking against a `subset` type involves invoking its
-`where` clause.
+它们有截然不同的属性，并且行为截然不同。比如，对`subset`类型的类型检查涉及到调用它们的
+`where`子语句。
 
-The differences aside, they each result in some kind of **type object** that
-represents the type they declare.
+除此之外，它们都拥有某种类型的**类型对象**来表示声明的类型。
 
-## Meta-objects
+## 元对象
 
-So if 6model doesn't natively know how things like inheritance and role
-composition work, let alone subset types, where are these things implemented?
+所以如果 6model 并不是天生的知道如继承以及组合如何工作，更不用说类型子集，这些东西是在哪
+里实现的呢？
 
-The answer lies in **meta-objects**. Each object in existence has an associated
-meta-object, which describes how that object works. Many objects may have the
-same meta-object. In Perl 6, for example, **all objects of the same class will
-share a meta-object**.
+答案就是**元对象**，每一个存在的对象都有一个对应的元对象，它描述了对象如何工作。许多对象
+可能有相同的元对象。在 Perl 6中，比如， **相同 class 的所有对象都共享一个元对象**。
 
-What's critical to understand is that **a meta-object is just an object**.
-There is *nothing* magical about it. It just happens to have methods with
-names like `new_type`, `add_method`, `add_parent`, and so forth. As such, a
-meta-object is **not tied to a particular target VM**.
+理解的关键就是**元对象仅仅是一个对象**，并*没有*什么魔法。它只是恰好有名字是`new_type`，
+`add_method`， `add_parent`的等等方法。 因此，一个元对象**没有和特定目标虚拟机绑定**。
 
-## Representations
+## 表示（Representations）
 
-Meta-objects are interested in an object's type and semantics. However, they
-are explicitly *not* concerned with how an object is laid out in memory.
+元对象意在对象的类型以及语义，但是，他们明确的*不*关心一个对象在内存中如何布局。
 
-The allocation, layout and access of memory related to an object is controlled
-by a **representation**.
+对象相关的内存分配，布局以及访问由**表示**控制。
 
-Representations are not objects. They are **low level** and **implemented in
-a different way per backend**. The API they provide, however, is the same.
+表示并不对象，它们是 **低层次（low level）**，**在不同的后端以不同的方式实现**。 然而，
+他们提供的 API 是相同的。
 
-Thus, as well as having a meta-object, each object has a representation. While
-meta-objects may exist per type, representations are much fewer in number.
+因此，每一个对象不但有一个元对象，还有一个表示。然而，每个类型可能都存在元对象，表示在数
+量上却很少。
 
 ## STables combine meta-objects and REPRs
 
@@ -122,15 +108,15 @@ types will always have the `P6opaque` representation.
 
     class SimpleHOW {
         has %!methods;
-        
+
         method new_type() {
             nqp::newtype(self.new(), 'P6opaque')
         }
-        
+
         method add_method($obj, $name, $code) {
             %!methods{$name} := $code;
         }
-        
+
         method find_method($obj, $name) {
             %!methods{$name}
         }
@@ -262,15 +248,15 @@ couple of minor tweaks.
     class RubyishClassHOW {
         has $!name;
         has %!methods;
-        
+
         method new_type(:$name!) {
             nqp::newtype(self.new(:$name), 'HashAttrStore')
         }
-        
+
         method add_method($obj, $name, $code) {
             %!methods{$name} := $code;
         }
-        
+
         method find_method($obj, $name) {
             %!methods{$name}
         }
@@ -922,7 +908,7 @@ context, and in turn serializing the objects that they point to, traversing
 the object graph as needed.
 
 They are dumped to a binary serialization format, documented in the NQP
-repository. 
+repository.
 
 ## What's "bounded" about it
 
@@ -1086,7 +1072,7 @@ in a pre-compiled situation before deserialization takes place.
         my $line   := HLL::Compiler.lineof($/.orig, $/.from, :cache(1));
         my $module := Perl6::ModuleLoader.load_module($module_name, %opts,
             $cur_GLOBALish, :$line);
-        
+
         if self.is_precompilation_mode() {
             self.add_load_dependency_task(:deserialize_past(...));
         }
@@ -1746,7 +1732,7 @@ The usual set of arithmetic and bitwise operations are available
 
 ## JVM instruction set: compare/branch
 
-Bloody irregular! 
+Bloody irregular!
 
 For longs, floats and doubles, you use one of `lcmp`, `fcmpl`, `fcmpg`,
 `dcmpl`, or `dcmpg`, which give -1, 0 or 1 (like a `cmp` in various
