@@ -9,7 +9,7 @@ Perl 6 是一种大型语言，包含许多要求正确实现的功能。
 这样的软件项目很容易被难控制的复杂性淹没。
 Rakudo 和 NQP 项目的早期阶段已经遭受了这样的困难，因为我们学到了 - 艰难的方式 - 关于复杂性，出现并可能在实现过程中不受限制地扩散。
 
-本课程将教您如何使用 Rakudo 和 NQP 内部。 在他们的设计中编码是一个大量学习的过程，关于如何（以及如何不）写一个 Perl 6 实现, 这个过程持续了多年。 因此，本课程还将教你事情的来龙去脉。
+本课程将教您如何使用 Rakudo 和 NQP 内部。 在他们的设计中编码是一个大量学习的过程，关于如何（以及不要如何）写一个 Perl 6 实现, 这个过程持续了多年。 因此，本课程还将教你事情的来龙去脉。
 
 ## 关于讲师
 
@@ -22,9 +22,9 @@ Rakudo 和 NQP 项目的早期阶段已经遭受了这样的困难，因为我�
 
 ## 课程大纲 - 第一天
 
-* 鹰的视角: 编译器和 NQP/Rakudo 架构
+* 全局预览: 编译器和 NQP/Rakudo 架构
 * NQP 语言
-* 编译管道
+* 编译流水线
 * QAST
 * 探索 nqp::ops
 
@@ -36,13 +36,13 @@ Rakudo 和 NQP 项目的早期阶段已经遭受了这样的困难，因为我�
 * JVM 后端
 * MoarVM 后端
 
-# 鹰的视角
+# 全局预览
 
 *编译器和 NQP/Rakudo 架构*
 
 ## 编译器做什么
 
-编译器真的是"只是"翻译。
+编译器真的是"只是"翻译员。
 
 编译器把高级语言 (例如 Perl 6) 翻译成低级语言 (例如 JVM 字节码)。
 
@@ -50,7 +50,7 @@ Rakudo 和 NQP 项目的早期阶段已经遭受了这样的困难，因为我�
 
 接收直截了当的输入（文本）并产生直截了当的输出（文本或二进制），但**内部的数据结构很丰富**
 
-像字符串那样处理东西，通常是最后的手段
+作为字符串那样处理，通常是最后的手段
 
 ## 运行时做什么
 
@@ -65,7 +65,7 @@ Rakudo 和 NQP 项目的早期阶段已经遭受了这样的困难，因为我�
 
 我们已经以现有的编译器构造技术进行了各种尝试来构建 Perl 6。 编译器的早期设计至少有一部分是基于常规假设的。
 
-这样的尝试是信息性的，但从长远来看还不够好。
+这样的尝试是有益的，但从长远来看还不够好。
 
 Perl 6 提出了一些有趣的挑战...
 
@@ -93,11 +93,11 @@ Perl 6 是一种 **渐进类型化**的语言。
 
 ## 模糊编译时和运行时
 
-运行时可以做一些编译时:
+运行时可以做一些编译时做的事情:
 
     EVAL slurp @demos[$n];
 
-编译时可以做一些运行时:
+编译时可以做一些运行时做的事情:
 
     my $comp-time = BEGIN now;
 
@@ -299,7 +299,7 @@ exception is that it will pay attention to **native types**.
 
     my int $idx := 0;
     my num $vel := 42.5;
-    my str $mug := 'coffee'; 
+    my str $mug := 'coffee';
 
 **Note:** in NQP, binding is used on native types! This is illegal in Perl 6,
 where natives can only be assigned. It's all rather artificial, though, in so
@@ -347,7 +347,7 @@ Named parameters are supported:
     sub make_op(:$name) {
         QAST::Op.new( :op($name) )
     }
-    
+
     make_op(name => 'time_n');  # Fat-arrow syntax
     make_op(:name<time_n>);     # Colon-pair syntax
     make_op(:name('time_n'));   # The same
@@ -377,10 +377,10 @@ instruction set. Here are a few common instructions that are useful to know.
 
     # On arrays
     nqp::elems, nqp::push, nqp::pop, nqp::shift, nqp::unshift
-    
+
     # On hashes
     nqp::elems, nqp::existskey, nqp::deletekey
-    
+
     # On strings
     nqp::substr, nqp::index, nqp::uc, nqp::lc
 
@@ -409,11 +409,11 @@ be lexical (`my`) or package (`our`) scoped (the default).
 
     class VariableInfo {
         has @!usages;
-        
+
         method remember_usage($node) {
             nqp::push(@!usages, $node)
         }
-        
+
         method get_usages() {
             @!usages
         }
@@ -444,15 +444,15 @@ NQP 支持 roles. 像类那样, roles 能拥有属性和方法。
 
     role QAST::CompileTimeValue {
         has $!compile_time_value;
-        
+
         method has_compile_time_value() {
             1
         }
-        
+
         method compile_time_value() {
             $!compile_time_value
         }
-        
+
         method set_compile_time_value($value) {
             $!compile_time_value := $value
         }
@@ -482,11 +482,11 @@ Unlike in full Perl 6, you **must write a `proto`** sub or method; there is
 no auto-generation.
 
     proto method as_jast($node) {*}
-    
+
     multi method as_jast(QAST::CompUnit $cu) {
         # compile a QAST::CompUnit
     }
-    
+
     multi method as_jast(QAST::Block $block) {
         # compile a QAST::Block
     }
@@ -733,7 +733,7 @@ section.
 ## Actions example: entries
 
 Action 方法将刚刚匹配过的 rule 的 Match 对象作为参数。
-把这个 Match 对象放到 `$/` 里很方便, 所以我们能够使用 `$<entry>` 语法糖 (它映射到 `$/<entry>` 上)。这个语法糖看起来像普通的标量, 第一眼看上去的时候有点懵, 再看一眼发现它有一对 `<>` 后环缀, 而这正是散列中才有的, `<entry>` 相当于 `{'entry'}`, 不过前者更漂亮。 
+把这个 Match 对象放到 `$/` 里很方便, 所以我们能够使用 `$<entry>` 语法糖 (它映射到 `$/<entry>` 上)。这个语法糖看起来像普通的标量, 第一眼看上去的时候有点懵, 再看一眼发现它有一对 `<>` 后环缀, 而这正是散列中才有的, `<entry>` 相当于 `{'entry'}`, 不过前者更漂亮。
 
     class INIFileActions {
         method entries($/) { # Match Object 放在参数 $/ 中
@@ -802,7 +802,7 @@ actions 作为具名参数传递给 `parse`:
 
 ## 另外一个例子: SlowDB
 
-解析 INI 文件这个例子是一个很好的开端, 但是离编译器还差的远。作为那个方向的进一步深入, 我们会使用查询解释器创建一个小的, 无聊的, 在内存中的数据库。 
+解析 INI 文件这个例子是一个很好的开端, 但是离编译器还差的远。作为那个方向的进一步深入, 我们会使用查询解释器创建一个小的, 无聊的, 在内存中的数据库。
 
 它应该像下面这样工作:
 
@@ -824,11 +824,11 @@ actions 作为具名参数传递给 `parse`:
     token TOP {
         ^ [ <insert> | <select> ] $
     }
-    
+
     token insert {
         'INSERT' :s <pairlist>
     }
-    
+
     token select {
         'SELECT' :s <keylist>
         [ 'WHERE' <pairlist> ]?
@@ -869,7 +869,7 @@ generated as part of the separator.
         ^ [ <insert> | <select> ] $
     }
 
-如果我们追踪 `SELECT` 查询的解析, 我们会看到像下面这样的东西:    
+如果我们追踪 `SELECT` 查询的解析, 我们会看到像下面这样的东西:
 
     Calling parse
       Calling TOP
@@ -944,7 +944,7 @@ candidates - just like an alternation did.
 例如, 在我们重构查询之后:
 
     token TOP { ^ <query> $ }
-    
+
     proto token query {*}
     token query:sym<insert> {
         'INSERT' :s <pairlist>
@@ -1002,7 +1002,7 @@ hash produced by the `pairlist` action method onto it.
 
     class SlowDB {
         has @!data;
-        
+
         method execute($query) {
             if QueryParser.parse($query, :actions(QueryActions.new)) -> $parsed {
                 my $evaluator := $parsed.ast;
@@ -1043,7 +1043,7 @@ have been looking through.
 
 ## 后端的区别
 
-JVM 和 MoarVM 上的 NQP 相对比较一致。Parrot 上的 NQP 有点古怪: 不是所有的东西都是 6model 对象。即虽然在 JVM 和 MoarVM 上, NQP  中的 `.WHAT` 或 `.HOW` 会工作良好, 但是在 Parrot 上它会失败。这发生在整数, 数字和字符串字面值, 数组和散列, 异常和某些种类的代码对象身上。 
+JVM 和 MoarVM 上的 NQP 相对比较一致。Parrot 上的 NQP 有点古怪: 不是所有的东西都是 6model 对象。即虽然在 JVM 和 MoarVM 上, NQP  中的 `.WHAT` 或 `.HOW` 会工作良好, 但是在 Parrot 上它会失败。这发生在整数, 数字和字符串字面值, 数组和散列, 异常和某些种类的代码对象身上。
 
 Exception handlers also work out a bit differently. Those on JVM and MoarVM
 run on the stack top at the point of the exception throw, as is the Perl 6
@@ -1145,7 +1145,7 @@ of it below to illustrate). :-)
     58 __TMP_S_0
     .push_sc &say
     .push_idx 1
-    43 
+    43
     25 __TMP_S_0
     .try
     186 subcall_noa org/perl6/nqp/runtime/IndyBootstrap subcall_noa 0
@@ -1163,13 +1163,13 @@ options and other minor details).
 
     class NQP::Compiler is HLL::Compiler {
     }
-    
+
     # Create and configure compiler object.
     my $nqpcomp := NQP::Compiler.new();
     $nqpcomp.language('nqp');
     $nqpcomp.parsegrammar(NQP::Grammar);
     $nqpcomp.parseactions(NQP::Actions);
-    
+
     sub MAIN(*@ARGS) {
         $nqpcomp.command_line(@ARGS, :encoding('utf8'));
     }
@@ -1287,7 +1287,7 @@ it's actually a `method`, not a `token` or `rule`!
     method TOP() {
         # Various things we'll consider in a moment.
         ...
-        
+
         # Then delegate to comp_unit
         self.comp_unit;
     }
@@ -1352,13 +1352,13 @@ overlapping handles!
 (The `--stable-sc` option suppresses this for those needing to cross-compile
 NQP itself when porting to a new VM.)
 
-## NQP::Grammar.comp_unit 
+## NQP::Grammar.comp_unit
 
 Next, we reach comp_unit. Here it is, stripped to the essentials.
 
     token comp_unit {
         :my $*UNIT := $*W.push_lexpad($/);
-        
+
         # Create GLOBALish - the current GLOBAL view.
         :my $*GLOBALish := $*W.pkg_create_mo(%*HOW<knowhow>,
                                              :name('GLOBALish'));
@@ -1366,11 +1366,11 @@ Next, we reach comp_unit. Here it is, stripped to the essentials.
             $*GLOBALish.HOW.compose($*GLOBALish);
             $*W.install_lexical_symbol($*UNIT, 'GLOBALish', $*GLOBALish);
         }
-        
+
         # This is also the starting package.
         :my $*PACKAGE := $*GLOBALish;
         { $*W.install_lexical_symbol($*UNIT, '$?PACKAGE', $*PACKAGE); }
-        
+
         <.outerctx>
         <statementlist>
         [ $ || <.panic: 'Confused'> ]
@@ -1482,7 +1482,7 @@ each level in the table!) and horrible to maintain.
 Thus, `EXPR` actually calls into an **operator precedence parser**. Its
 implementation lives in `HLL::Grammar`, though we'll not look into that during
 this course; it's mildly terrifying and not something you're ever likely to
-need to change. 
+need to change.
 
 We will, however, see how to configure it later.
 
@@ -1514,7 +1514,7 @@ After we parse this, we (finally!) end up calling our first action method:
 
     method deflongname($/) {
         make $<colonpair>
-             ?? ~$<identifier> ~ ':' ~ $<colonpair>[0].ast.named 
+             ?? ~$<identifier> ~ ':' ~ $<colonpair>[0].ast.named
                     ~ '<' ~ colonpair_str($<colonpair>[0].ast) ~ '>'
              !! ~$/;
     }
@@ -1530,7 +1530,7 @@ to parse either a single argument or a comma separated list of arguments.
     token args {
         '(' <arglist> ')'
     }
-    
+
     token arglist {
         <.ws>
         [
@@ -1671,7 +1671,7 @@ in a `QAST::CompUnit`, which also specifies which language the code is from.
         my $mainline := $<statementlist>.ast;
         my $unit     := $*W.pop_lexpad();
         $unit.push($mainline);
-        
+
         # Wrap everything in a QAST::CompUnit.
         make QAST::CompUnit.new(
             :hll('nqp'),
@@ -1745,16 +1745,16 @@ more about QAST - start to add language features.
 Just subclass three things from the NQPHLL library.
 
     use NQPHLL;
-    
+
     grammar Rubyish::Grammar is HLL::Grammar {
     }
-    
+
     class Rubyish::Actions is HLL::Actions {
     }
-    
+
     class Rubyish::Compiler is HLL::Compiler {
     }
-    
+
     sub MAIN(*@ARGS) {
         my $comp := Rubyish::Compiler.new();
         $comp.language('rubyish');
@@ -1782,14 +1782,14 @@ only horizontal whitespace is allowed between tokens.
 
     grammar Rubyish::Grammar is HLL::Grammar {
         token TOP          { <statementlist> }
-        
+
         rule statementlist { [ <statement> \n+ ]* }
-        
+
         proto token statement {*}
         token statement:sym<puts> {
             <sym> <.ws> <?["]> <quote_EXPR: ':q'>
         }
-        
+
         # Whitespace required between alphanumeric tokens
         token ws { <!ww> \h* || \h+ }
     }
@@ -1810,7 +1810,7 @@ Which, again, tells us what we need to do next: actions!
         method TOP($/) {
             make QAST::Block.new( $<statementlist>.ast );
         }
-        
+
         method statementlist($/) {
             my $stmts := QAST::Stmts.new( :node($/) );
             for $<statement> {
@@ -1818,7 +1818,7 @@ Which, again, tells us what we need to do next: actions!
             }
             make $stmts;
         }
-        
+
         method statement:sym<puts>($/) {
             make QAST::Op.new(
                 :op('say'),
@@ -2525,13 +2525,13 @@ tomorrow).
     my $compunit := QAST::CompUnit.new(
         # Set the language this contains.
         :hll('nqp'),
-        
+
         # What to do if the compilation unit is loaded as a module.
         :load(QAST::Op.new(
             :op('call'),
             QAST::BVal.new( :value($unit) )
         )),
-        
+
         # What to do if the compilation unit is invoked as the main,
         # top-level program.
         :main(...),
@@ -2592,7 +2592,7 @@ The basic stuff:
     ln_n        sqrt_n      log_n
     exp_n       isnanorinf  inf
     neginf      nan
-    
+
 Trigometric:
 
     sin_n   asin_n  cos_n   acos_n  tan_n
@@ -2735,7 +2735,7 @@ There are four related loop constructs:
                                 Loop while true    Loop while false
                                 ---------------    ---------------
     Condition, then body      | while              until
-    Body, then condition      | repeat_while       repeat_until               
+    Body, then condition      | repeat_while       repeat_until
 
 They take two or three children:
 
