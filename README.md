@@ -4,20 +4,20 @@
 
 该仓库包含了关于 Rakudo 和 NQP 内部研讨会的课程材料。 在这里你会发现：
 
-* 原始来源 (下面有构建说明)
+* 原始源码 (下面有构建说明)
 * [Pre-built PDFs](http://edumentab.github.io/rakudo-and-nqp-internals-course/)
 
 ## 摘要
 
-这个密集的为期两天的研讨会深入探讨了 Rakudo Perl 6 和 NQP 内部的许多领域，主要集中在后端不可知的部分，但是涵盖了一些 JVM 和未来 MoarVM 的东西。 在课程中，参与者将构建他们自己的小编译器，完成一个简单的基于类的对象系统，以帮助他们了解工具链的工作原理。
+这个密集的为期两天的研讨会深入探讨了 Rakudo Perl 6 和 NQP 内部的许多领域，主要集中在后端不可知的部分，但有一些涵盖了 JVM 和未来 MoarVM 后端的东西。 在课程中，参与者将构建他们自己的小编译器，连同一个简单的基于类的对象系统，以帮助他们了解工具链的工作原理。
 
-### 先决条件
+### 预备知识
 
 对 Perl 6 语言有一定的了解，并且最好还有使用 NQP 的经验。
 
 ### 第一天
 
-##### 鹰的视角: 编译器和 NQP/Rakudo 架构
+#### 全局预览：编译器和 NQP/Rakudo 架构
 
 * 编译器做什么
 * 运行时做什么
@@ -26,7 +26,7 @@
 * NQP 作为编译器构建工具链
 * QAST
 * nqp::op 集合
-* 极其简单的引导
+* 自举简单介绍
 * Rakudo 如何使用 NQP
 
 #### NQP 语言
@@ -38,12 +38,12 @@
 * 正则表达式和 grammars
 * Roles
 * 多重分派
-* 内置和 nqp::ops
+* 内建方法和 nqp::ops
 * 异常处理
 * 限制和与完整 Perl 6 的其它差异
 * 缺点
 
-#### 编译管道
+#### 编译流水线
 
 * HLL::Compiler 类
 * 前端, 后端和它们之间的 QAST
@@ -93,8 +93,8 @@
 * 使用 World 类为我们的小语言添加对象
 * 方法缓存
 * 类型检查
-* Boolification
-* Invocation
+* （布尔化）Boolification
+* 调用
 * 探索 NQP 的元对象
 * 探索 Rakudo 的元对象
 * 容器处理
@@ -113,9 +113,9 @@
 #### 正则表达式和 grammar 引擎
 
 * QAST::Regex 节点和它的子类型
-* Cursor 和 Match
-* The bstack and the cstack
-* NFAs 和 Longest Token Matching
+* 游标 和 匹配
+* bstack 和 cstack
+* NFAs 和 最长令牌匹配（Longest Token Matching）
 
 #### JVM 后端
 
