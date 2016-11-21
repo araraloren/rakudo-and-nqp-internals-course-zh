@@ -2,7 +2,7 @@
 副标题: The guts tormented implementers made
 作者: Jonathan Worthington
 
-## Course overview - Day 2
+## 课程概述 - 第2天
 
 欢迎回来。 今天我们讲的内容会覆盖以下主题：
 
@@ -87,24 +87,22 @@ we have **different kinds of type**）。在Perl 6中, 它们对应于不同的 
 
 对象相关的内存分配，布局以及访问由**表示**控制。
 
-表示并不对象，它们是 **低层次（low level）**，**在不同的后端以不同的方式实现**。 然而，
-他们提供的 API 是相同的。
+表示并不是对象，它们是 **低层次（low level）**，**在不同的后端以不同的方式实现**。
+然而，他们提供的 API 是相同的。
 
-因此，每一个对象不但有一个元对象，还有一个表示。然而，每个类型可能都存在元对象，表示在数
-量上却很少。
+因此，每一个对象不但有一个元对象，还有一个表示。然而，每个类型可能都存在元对
+象，表示在数量上却很少。
 
-## STables combine meta-objects and REPRs
+## STables结合元对象和表示
 
-While an object has a meta-object and has a representation, there is actually
-a level of indirection between then: the **STable**. We'll look at these more
-closely later on.
+一个对象有一个元对象和一个表示，实际上它们（对象和元对象、表示）之间还有一个间接层次：**STable**，
+待会我们将会深入了解它。
 
 ![50%](eps/6model.eps)
 
-## Our first meta-object
+## 我们的第一个元对象
 
-Here's our very first object system. It supports types that have methods. The
-types will always have the `P6opaque` representation.
+这是我们的第一个对象系统，它支持有方法的类型，总是有着`P6opaque`表示（representation）.
 
     class SimpleHOW {
         has %!methods;
@@ -122,32 +120,27 @@ types will always have the `P6opaque` representation.
         }
     }
 
-## Using our meta-object
+## 使用我们的元对象
 
-First, let's create a new type and add a single method to it.
+首先，让我们创建一个新的类型并给它添加一个方法。
 
     my $Greeter := SimpleHOW.new_type();
     $Greeter.HOW.add_method($Greeter, 'greet',
         -> $self, $name { say("Hello, $name") });
 
-The `$Greeter` variable now contains a type object for the new type. If we
-call the `greet` method on it:
+变量`$Greeter`现在包含一个新类型的类型对象，如果我们调用`greet`方法：
 
     $Greeter.greet('Katerina');
 
-Then our meta-object's `find_method` method will be called with the argument
-`greet`, and whatever it returns will be invoked, passing `$Greeter` and the
-string `Katerina` as arguments.
+那么我们的元对象的`find_method`方法将会以`greet`为参数被调用，并且无论返回什么都会将
+ `$Greeter`和字符串`Katerina`作为参数调用它.
 
 ## HOW's that?
 
-The word `HOW` is often used in connection with meta-objects. By convention,
-the meta-object for the keyword `class` will have a name like `ClassHOW`. It's
-not strictly followed, even in Rakudo and NQP. But all of the meta-objects for
-types do end in `HOW`.
+单词`HOW`通常用于元对象。按照惯例，关键字`class`的元对象将会有类似`ClassHOW`的名字，
+这并不需要严格遵守，甚至在 Rakudo 和 NQP 中， 但是所有类型的元对象名字都会以`HOW`结尾。
 
-If you take an object and use `.HOW` on it, you get the meta-object back. We
-can chase this up the chain as far as we wish.
+如果在一个对象上调用`.HOW`方法，你将会得到元对象，我们可以根据我们的意愿深入这条链。
 
     my $mo := $Greeter.HOW;
     say($mo.HOW.name($mo));             # SimpleHOW
@@ -156,36 +149,33 @@ can chase this up the chain as far as we wish.
     my $momomo := $momo.HOW;
     say($momomo.HOW.name($momomo));     # KnowHOW
 
-## KnowHOW, the root of it all
+## KnowHOW，所有一切的根源
 
-If you chase the `HOW`-chain far enough back on any object, eventually you'll
-reach something that claims to be a `KnowHOW`. Keep going, and you just go in
-circles; the end of the chain is self-describing.
+如果你在任意一个对象的`HOW`-链深入的足够远，实际上你会到达一个自称是`KnowHOW`的元对象。
+继续往前，你将会进入一个环；链的结尾是自描述（self-describing）的。
 
-`KnowHOW` is the only meta-object provided by the 6model core. It supports:
+`KnowHOW` 是由 6model 核心提供的唯一一个元对象，它支持：
 
-* Having a name
-* Having attributes
-* Having methods
-* In a type check, it only type checks against itself
+* 拥有一个名字
+* 拥有属性
+* 拥有方法
+* 在类型检查时，它只与自身对比
 
-That's it. No role composition. No inheritance.
+就是这样，没有组合，没有继承。
 
-## The knowhow declarator
+## knowhow声明符
 
-The `knowhow` package declarator exists in both Rakudo and NQP. You've very
-little reason to use it yourself. However, inside of `src/how/` in NQP, you
-will find a bunch of meta-objects using it:
+`knowhow`包声明符在 Rakudo 和 NQP 都存在，对你而言很少有使用它的理由。然而，在 NQP 的
+`src/how/`中，你会发现一群元对象使用了它：
 
-    NQPModuleHOW                An NQP module
-    NQPClassHOW                 An NQP class or grammar
-    NQPNativeHOW                An NQP native type (int/num/str)
-    NQPParametricRoleHOW        An NQP role declaration
-    NQPConcreteRoleHOW          An NQP role made concrete for a given class
-    NQPCurriedRoleHOW           An NQP role with some arguments pre-set
+    NQPModuleHOW                NQP 模块
+    NQPClassHOW                 NQP 类型 或者 语法（grammar）
+    NQPNativeHOW                NQP 原生类型 (int/num/str)
+    NQPParametricRoleHOW        NQP role 声明
+    NQPConcreteRoleHOW          NQP role 和给定的类混合
+    NQPCurriedRoleHOW           NQP 含有默认参数的 role
 
-Naturally, we can't use `class` until the meta-object that implements classes
-is available! Thus, `knowhow` is all we have.
+自然，我们不能使用`class`直到实现类的元对象可用！因此，`knowhow`是我们的所有。
 
 ## Giving Rubyish classes
 
