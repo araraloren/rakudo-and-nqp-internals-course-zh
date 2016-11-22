@@ -177,24 +177,21 @@ we have **different kinds of type**）。在Perl 6中, 它们对应于不同的 
 
 自然，我们不能使用`class`直到实现类的元对象可用！因此，`knowhow`是我们的所有。
 
-## Giving Rubyish classes
+## 赋予 Rubyish 类
 
-We'll take a look at the meta-objects for NQP and Rakudo in a little bit. But
-first, to see something a little more manageable, let's return to the Rubyish
-compiler we worked on yesterday and add very basic OO support:
+很快，我们将会看一下 NQP 和 Rakudo 的元对象。但首先，看一些更易于管理的东西，让我们回到
+昨天我们的 Rubyish 编译器，并加上一个基础的面向对象支持：
 
-* Declaring a class
-* Giving it methods
-* Creating a class instance with a `new` statement
-* Calling the methods on the class
+* 声明一个类
+* 赋予它方法
+* 使用`new`语法创建一个类实例
+* 调用类的方法
 
-We'll put inheritance and attributes aside for now; in fact, we'll use the NQP
-or Perl 6 meta-objects to study those.
+我们现在把继承和属性放在一边，实际上，我们将使用 NQP 或者 Perl 6的元对象来研究。
 
-## Parsing a class definition
+## 解析一个类定义
 
-The parsing is relatively easy, however we set up a couple of extra dynamic
-variables related to methods. We'll see their usage next.
+解析相对容易，但是我们设置一些与方法相关的额外的动态变量，接下来我们将看到它们的用法。
 
     token statement:sym<class> {
         :my $*IN_CLASS := 1;
@@ -208,11 +205,10 @@ variables related to methods. We'll see their usage next.
         'end'
     }
 
-## Updating def for methods
+## 更新def对方法的支持
 
-Methods are declared just like functions. Inside the scope of a class, a
-function definition should be added to the surrounding class. The action
-method for `def` can be updated as follows:
+方法的声明就像函数那样，在类的作用域内，一个函数的定义需增加到环绕它的类里。`def`的动作
+更新如下：
 
     method statement:sym<def>($/) {
         my $install := $<defbody>.ast;
@@ -228,12 +224,11 @@ method for `def` can be updated as follows:
         make QAST::Op.new( :op('null') );
     }
 
-That is, push the `QAST::Block` onto `@*METHODS` in a class.
+即，将`QAST::Block`压入类的`@*METHODS`内。
 
-## A simple meta-object
+## 一个简单的元对象
 
-The meta-object we wrote before is just about good enough. Here it is with a
-couple of minor tweaks.
+我们之前写的元对象已经足够好了，这里做一些小幅的修正：
 
     class RubyishClassHOW {
         has $!name;
