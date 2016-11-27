@@ -247,10 +247,9 @@ we have **different kinds of type**）。在Perl 6中, 它们对应于不同的 
         }
     }
 
-## Building up the meta-object (1)
+## 构建元对象（1）
 
-In Rubyish, we'll generate code that builds up the meta-object. First of all,
-let's take care of the `classbody` action method.
+在Rubyish，我们将生成构建元对象的代码。首先，让我们关注一下`classbody`动作方法。
 
     method classbody($/) {
         $*CUR_BLOCK.push($<statementlist>.ast);
@@ -258,14 +257,13 @@ let's take care of the `classbody` action method.
         make $*CUR_BLOCK;
     }
 
-Note how the `blocktype` is set to `immediate`, since we want code in the
-class body to run as part of the program mainline.
+注意`blocktype`是怎样设置为`immediate`的，因为我们想让类内的代码
+作为程序主线的一部分运行。
 
-## Building up the meta-object (2)
+## 构建元对象（2）
 
-We mangle the name, then use `RubyishClassHOW` to create a new type object to
-represent it. Note that `QAST::WVal` is a way to refer to an object; we'll see
-much more on this later.
+我们粉碎（mangle）了命名，然后使用`RubyishClassHOW`创建一个新类型
+表示它。注意`QAST::WVal`引用一个对象的一种方式，我们以后将会看到更多。
 
     method statement:sym<class>($/) {
         my $body_block  := $<classbody>.ast;
@@ -286,11 +284,10 @@ much more on this later.
         make $class_stmts;
     }
 
-## Building up the meta-object (3)
+## 构建元对象（3）
 
-We also emit method calls to `add_method` to build up the method table for the
-class. Recall that `QAST::BVal` lets us reference a `QAST::Block` that was
-installed elsewhere in the tree.
+我们还生成（emit）对`add_method`调用构建类的方法表，再次调用
+`QAST::BVal`让我们引用被安装在树中别处的`QAST::Block`。
 
     my $class_var := QAST::Var.new( :name($ins_name), :scope('lexical') );
     for @*METHODS {
@@ -302,18 +299,17 @@ installed elsewhere in the tree.
             QAST::BVal.new( :value($_) )));
     }
 
-And with that, we've got classes and methods.
+这样，我们就有了类和方法。
 
-## The new keyword
+## new关键字
 
-Parsing `new` is unsurprising (we skip constructor arguments):
+解析`new`并不令人吃惊（我们跳过了构造函数的参数）：
 
     token term:sym<new> {
         'new' \h+ :s <ident> '(' ')'
     }
 
-The actions mangle the class name to look it up, and then use the `create` NQP
-op to create an instance of it.
+动作使用粉碎后的类名字进行名称查找，然后使用 NQP 的`create`创建它的一个实例。
 
     method term:sym<new>($/) {
         make QAST::Op.new(
@@ -322,23 +318,23 @@ op to create an instance of it.
         );
     }
 
-## Method calls (1)
+## 方法调用（1）
 
-Last but not least, we need to parse method calls. These can be handled as a
-kind of postfix, with a very tight precedence. First, we add the level:
+最后同样重要的，我们需要解析方法调用。它们可以处理为不同种类的后缀方法调用，以一种非常严格
+的优先级。首先，我们增加一个层次：
 
     Rubyish::Grammar.O(':prec<y=>, :assoc<unary>', '%methodop');
 
-And then the parsing, which is not too unlike how a function call was parsed.
+然后就是解析，它不太像一个函数调用解析。
 
     token postfix:sym<.>  {
         '.' <ident> '(' :s <EXPR>* % [ ',' ] ')'
         <O('%methodop')>
     }
 
-## Method calls (2)
+## 方法调用（2）
 
-The actions for a method call are relatively straightforward.
+方法调用的动作是非常直截了当的。
 
     method postfix:sym<.>($/) {
         my $meth_call := QAST::Op.new( :op('callmethod'), :name(~$<ident>) );
@@ -348,21 +344,19 @@ The actions for a method call are relatively straightforward.
         make $meth_call;
     }
 
-The key bit of "magic" that happens is that the `EXPR` action method will
-unshift the term the postfix was applied to, meaning it becomes the first
-child (and thus the invocant).
+上面发生的“魔法”中的关键的一点是动作方法`EXPR`将会添加后缀运算符应用的项，意味着它变成了
+第一个孩子节点（因此它是调用者）。
 
-## Exercise 7
+## 练习7
 
-In this exercise, you'll add basic support for classes and methods to PHPish.
-This will involve:
+在这个练习中，你将会给PHPish添加基本非类与方法的支持，这将会包含：
 
-* Writing a basic meta-object for a class with methods
-* Checking it works stand-alone
-* Adding parsing for classes, methods, new statements and method calls
-* Adding the relevant action methods to make things work
+* 为类和方法写一个基础的元对象
+* 检查它是否独立工作
+* 增加类，方法，new语句以及方法调用的解析
+* 增加相关的动作方法让一切OK
 
-See the exercise sheet for more information.
+更多信息请查看练习表。
 
 ## STables
 
