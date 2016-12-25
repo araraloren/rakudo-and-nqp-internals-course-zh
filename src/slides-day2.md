@@ -360,59 +360,50 @@ we have **different kinds of type**）。在Perl 6中, 它们对应于不同的 
 
 ## STables
 
-Each object has a meta-object and a representation. However, it does not point
-directly to them. Instead, each object points to an **s-table**, short for
-**shared table**.
+每一个对象都有一个元对象和表示，然而它并不直接指向它们，而是指向一个**s-table**, 即**shared table**。
 
-STables **represent a type**, and exist per `HOW`/`REPR` combination. Here is
-a cut-down version of the `MVMSTable` struct from MoarVM:
+STables **表示一个类型**, 并且存在于每个`HOW`/`REPR`组合，这里有一个来自 MoarVM的结构
+`MVMSTable`的简短版本：
 
     struct MVMSTable {
-        MVMREPROps *REPR;   /* The representation operation table. */
-        MVMObject  *HOW;    /* The meta-object. */
-        MVMObject  *WHAT;   /* The type-object. */
-        MVMObject  *WHO;    /* The underlying package stash. */
-        /* More... */
+        MVMREPROps *REPR;   /* 表示操作表 */
+        MVMObject  *HOW;    /* 元对象 */
+        MVMObject  *WHAT;   /* 类型对象 */
+        MVMObject  *WHO;    /* 提供对象的包 */
+        /* 更多。。。 */
     };
 
-## Representation Operations
+## 表示操作（Representation Operations）
 
-The representation operations are broken down into:
+表示操作分为以下几类：
 
-* **Common things:** creating a new type based on the representation, composing
-  that type (which may then compute a memory layout), allocation, cloning,
-  changing type (used for mixins), serialization and deserialization
-* **Boxing:** for types that serve as boxes of native types (int/str/num),
-  get/set the boxed value
-* **Attributes:** for types that can do storage of object attributes, get/bind
-  attribute values as well as compute access hints
-* **Positional:** for types that provide array-like storage, get and bind by
-  index, push/pop/shift/unshift, splice, set elements
-* **Associative:** for types that provide hash-like storage, get and bind by
-  key, exists by key, delete by key
+* **公共的东西：** 创建一个基于表示的新的类型，构造这个类型（这可能计算出一个内存布局）
+  分配内存，复制，改变类型（用于混入（mixins）），序列化，反序列化。
+* **打包：** 那些原生类型（int/str/num）的包装类型，获取/设置打包的值。
+* **属性：** 那些可以存储对象属性的类型，获取/绑定属性的值以及计算访问线索（hints）。
+* **位置的：** 那些支持类数组存储的类型，根据下标获取以及绑定，push/pop/shift/unshift，切片，设置元素。
+* **关联的：** 那些支持类哈希存储的类型，根据键获取以及绑定元素，根据键测试存在性，根据键删除。
 
-A representation can choose which of these it supports.
+一个表示可以选择它要支持那些上面的操作。
 
-## Common Representations
+## 常用表示
 
-The most common representations you'll encounter while working with NQP and
-rakudo are:
+在 NQP 和 rakudo 一起工作的时候你能邂逅的最常用的表示：
 
-    P6opaque            Opaque attribute storage; default in Perl 6
-    P6int               A native integer; flattens into a P6opaque
-    P6num               A native float; flattens into a P6opaque
-    P6str               A native string reference; flattens into a P6opaque
-    P6bigint            Big integer; flattens into a P6opaque
-    VMArray             Automatically resizing array, type-parametric
-    VMHash              Hash table
-    Uninstantiable      Type object only; used for module, role, etc.
+    P6opaque            不透明属性存储; Perl 6的默认表示
+    P6int               原生整型; flattens into a P6opaque
+    P6num               原生浮点类型; flattens into a P6opaque
+    P6str               原生字符串引用; flattens into a P6opaque
+    P6bigint            大整数; flattens into a P6opaque
+    VMArray             自动调整大小的数组, 支持类型参数
+    VMHash              哈希表
+    Uninstantiable      只是一个类型对象; 用于module，role，等。
 
-## Type setup
+## 类型创建
 
-The `nqp::newtype` operation is central to type creation. For example, here is
-the `new_type` method from `NQPModuleHOW`. It creates a new meta-object, makes
-a new type based upon it and the `Uninstantiable` representation, and gives it
-an empty Hash as its stash.
+操作`nqp::newtype`是一个主要的类型创建方式。比如，这里有一个来自`NQPModuleHOW`的`new_type`
+方法， 它创建了一个新的元对象，创建了一个基于它和`Uninstantiable`表示的新类型，并且给予它
+一个空的哈希作为它的存储。
 
     method new_type(:$name = '<anon>') {
         my $metaobj := self.new(:name($name));
