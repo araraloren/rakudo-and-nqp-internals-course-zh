@@ -410,36 +410,31 @@ STables **表示一个类型**, 并且存在于每个`HOW`/`REPR`组合，这里
         nqp::setwho(nqp::newtype($metaobj, 'Uninstantiable'), {});
     }
 
-`nqp::newtype` creates a new type object and STable. It points the type object
-at the STable, and the `WHAT` field of the STable back at the type object. It
-then sets the `HOW` field of the STable to the specified meta-object, and the
-`REPROps` to the operation table for `Uninstantiable`.
+`nqp::newtype`创建了一个新的类型对象以及STable，它指向STable的类型对象，STable的
+属性`WHAT`又指回这个类型对象，然后使STable的属性`HOW`指向元对象，以及属性对象`REPROps`
+指向操作表`Uninstantiable`。
 
-## Type composition
+## 类型组合
 
-Various representations need types to go through a **composition** phase. For
-others it is optional.
+许多表示（representations）都需要类型来完成**组合**阶段，其它时候则是可选的。
 
-Representation composition typically happens at class composition time (which
-is usually done at the point of the closing `}` of a class declaration). It is
-when a meta-object has a chance to configure an underlying representation.
+表示组合（Representation composition）通常发生在类组合时（这通常是发生在接近类声明的闭花括号`}`时），
+这也是元对象配置下层的表示的时机。
 
-For example, `P6opaque` must be configured with the attributes that it should
-compute a layout for.
+比如，`P6opaque`必须配置好用于计算布局的属性。
 
     # <build attribute info array up into @repr_info>
     my %info := nqp::hash();
     %info<attribute> := @repr_info;
     nqp::composetype($obj, %info)
 
-`repr-compose-protocol.markdown` documents this in detail.
+`repr-compose-protocol.markdown`文档详述了这一点。
 
-## Method caches
+## 方法缓存
 
-If every method call really involved a call to `find_method`, method dispatch
-would be way too slow. Therefore, many types publish a **method cache**, which
-is a hash table mapping a method name to the thing to call. Here it is done by
-walking the method resolution order in reverse (so we get overrides correct).
+如果每一次方法调用都会真正的执行一次`find_method`，方法派遣将会很慢。所以，许多类型都会
+发布一个**方法缓存**，这是一个映射了从方法名字到需要调用的东西的哈希表。这是用方法决议顺序（C3 MRO）
+的反方向遍历得到的（所以我们得到了正确的重写顺序）。
 
     method publish_method_cache($obj) {
         my %cache;
@@ -453,48 +448,43 @@ walking the method resolution order in reverse (so we get overrides correct).
         nqp::setmethcacheauth($obj, 1);
     }
 
-Method caches hang off an `STable`.
+方法缓存会挂起`STable`（译：应该是优先访问方法缓存的意思）。
 
-## Authoritative method caches
+## 权威的（Authoritative）方法缓存
 
-We can choose if the method cache is authoritative or not:
+我们可以设置方法缓存是否是权威性的：
 
-    nqp::setmethcacheauth($obj, 0);     # Non-authoritative; default
-    nqp::setmethcacheauth($obj, 1);     # Authoritative
+    nqp::setmethcacheauth($obj, 0);     # 非权威；默认
+    nqp::setmethcacheauth($obj, 1);     # 权威的
 
-This really just controls what happens if the method in question is not found
-in the method cache. In authoritative mode, the cache is taken as having the
-complete set of methods. In non-authoritative mode, if the method is not found
-in the cache, we fall back to calling `find_method`.
+这仅仅是用来控制当询问的方法没有找到时的行为，在权威模式下，缓存会被认为包含所有的方法；
+在非权威模式下，如果缓存中没有找到该方法，则退而调用`find_method`。
 
-It's nice to have authoritative method caches when possible, since it can give
-a fast answer to `nqp::can(...)`. However, any type that wants to do fallback
-handling cannot have this. Rakudo decides on a type-by-type basis.
+如果可能的话，有权威性的方法缓存是好的，因为这可以快速响应`nqp::can(...)`方法调用。然而，
+任何类型都想没有找到方法时能退而求其次，Rakudo 根据类型来决定这一点。
 
-## Type checking
+## 类型检查
 
-Type checks show up in many places in Perl 6:
+类型检查出现在 Perl 6的许多地方:
 
-    if $obj ~~ SomeType { ... }         # Explicit check
-    my SomeType $obj = ...;             # Variable assignment
-    sub foo(SomeType $obj) { ... }      # Parameter binding
+    if $obj ~~ SomeType { ... }         # 显式检查
+    my SomeType $obj = ...;             # 变量赋值
+    sub foo(SomeType $obj) { ... }      # 参数绑定
 
-These all eventually boil down to the same operation, `nqp::istype`. However,
-there are many things that `SomeType` could be one of the many kinds of type:
+虽然有时候`SomeType`可以是多种类型中的一种，但是它们最终都归结为相同的操作`nqp::istype`：
 
-    class SomeType { }              # Class type
-    role SomeType { }               # Role type
-    subset SomeType where { ... }   # Subset type
+    class SomeType { }              # 类类型（Class type）
+    role SomeType { }               # 角色类型（Role type）
+    subset SomeType where { ... }   # 子集类型（Subset type）
 
-## Left-side-knows checks
+## 左侧已知型检查
 
-For some kinds of type, the object being checked has the answer. This is the
-case with subtyping relationships.
+对于某些类型，将要检查的对象自己知道答案，这就是子类型关系的情形。
 
-    Int ~~ Mu           # Int knows it inherits from Mu
-    Block ~~ Callable   # Block knows it does Callable
+    Int ~~ Mu           # Int 知道它继承自 Mu
+    Block ~~ Callable   # Block 知道它实现了 Callable
 
-These cases are handled by a `type_check` method.
+这种情况下是由方法`type_check`处理。
 
     method type_check($obj, $checkee) {
         for self.mro($obj) {
@@ -508,11 +498,10 @@ These cases are handled by a `type_check` method.
         return 0;
     }
 
-## Type check caches
+## 类型检查缓存
 
-Once again, really iterating the MRO and the roles composed in at each level
-would be really slow. Therefore, left-side-knows checks are typically handled
-by the meta-object publishing a type-check cache.
+再一次，真正的遍历MRO以及每个层次组成的角色将会很慢，所以，左侧已知型检查通常由元对象发布
+的类型检查缓存处理。
 
     method publish_type_cache($obj) {
         my @tc;
@@ -527,30 +516,27 @@ by the meta-object publishing a type-check cache.
         nqp::settypecache($obj, @tc)
     }
 
-## Right-side-knows checks (1)
+## 右侧已知型检查 (1)
 
-There are other kinds of type where it's the type that we're checking against
-that needs to drive the checking. For example, subset types are this way:
+还有一些其他的类型，它是需要进行驱动检查的被对比的类型，比如子集类型就是这种方式：
 
     subset Even of Int where * % 2 == 0;
 
-We need to invoke the code associated with the `Even` subset type as part of
-the type check:
+我们需要去执行子集类型`Even`相关的代码作为类型检测的一部分：
 
     say 11 ~~ Even    # False
     say 42 ~~ Even    # True
 
-## Right-side-knows checks (2)
+## 右侧已知型检查 (2)
 
-These kinds of type implement an `accepts_type` method. For example, here is
-the one from Perl 6's `SubsetHOW`:
+这些类型都实现了方法`accepts_type`，比如，这是 Perl 6中`SubsetHOW`的一种实现：
 
     method accepts_type($obj, $checkee) {
         nqp::istype($checkee, $!refinee) &&
             nqp::istrue($!refinement.ACCEPTS($checkee))
     }
 
-It must also set up the appropriate type check mode for this to work:
+它还必须设置适当的类型检查模式才能正常工作：
 
     nqp::settypecheckmode($type, 2)
 
